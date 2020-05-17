@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <math.h>
 #include <CL/opencl.h>
-#include "bitfile.h"
 #define WINDOWSIZE 4096
 #define BLOCKSIZE 1048576
 #define MINSIZE 1048576
