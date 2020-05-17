@@ -13,8 +13,7 @@ struct __attribute__((packed)) FIFO {
   char string[BLOCKSIZE];
 };
 
-encoded_string_t FindMatch(const unsigned int windowHead,
-                           unsigned int uncodedHead, unsigned char* slidingWindow, unsigned char* uncodedLookahead) {
+encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHead, unsigned int windowsize, unsigned char* slidingWindow, unsigned char* uncodedLookahead) {
   encoded_string_t matchData;
   unsigned int i;
   unsigned int j;
@@ -25,12 +24,13 @@ encoded_string_t FindMatch(const unsigned int windowHead,
   j = 0;
 
   while (1) {
-    if (slidingWindow[i] == uncodedLookahead[uncodedHead]) {
+    if (slidingWindow[i] == uncodedLookahead[uncodedHead]) 
+    {
       /* we matched one. how many more match? */
       j = 1;
 
-      while (slidingWindow[(i + j) % WINDOW_SIZE] ==
-             uncodedLookahead[((uncodedHead + j) % MAX_CODE)]) {
+      while (slidingWindow[(i + j) % windowsize] == uncodedLookahead[((uncodedHead + j) % MAX_CODED)]) 
+      {
         if (j >= MAX_CODED) {
           break;
         }
@@ -48,7 +48,7 @@ encoded_string_t FindMatch(const unsigned int windowHead,
       break;
     }
 
-    i = ((i + 1) % WINDOW_SIZE);
+    i = ((i + 1) % windowsize);
     if (i == windowHead) {
       /* we wrapped around */
       break;
@@ -57,39 +57,19 @@ encoded_string_t FindMatch(const unsigned int windowHead,
   return matchData;
 }
 
-int ReplaceChar(const unsigned int charIndex, const unsigned char replacement, unsigned char* slidingWindow) {
-  slidingWindow[charIndex] = replacement;
-  return 0;
-}
-
 /*
  * Main encoding kernel
  */
 
-__kernel void EncodeLZSS(__global struct FIFO *infifo,
-                         __global struct FIFO *outfifo, const unsigned int n,
-                         const unsigned int windowsize) {
+__kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n,const unsigned int windowsize) 
+{
     int id = get_global_id(0);
     int gid = get_group_id(0);
     int group_size = get_local_size(0);
     if (id < n * group_size) {
-        encoded_string_t matchData;
-        int c;
-        unsigned int i;
-        unsigned int len; /* length of string */
-
         /* cyclic buffer sliding window of already read characters */
         __local unsigned char slidingWindow[windowsize];
         __local unsigned char uncodedLookahead[MAX_CODED];
-
-        /* head of sliding window and lookahead */
-        unsigned int windowHead, uncodedHead;
-
-        /* convert output file to bitfile */
-        // bfpOut = MakeBitFile(fpOut, BF_WRITE);
-
-        windowHead = 0;
-        uncodedHead = 0;
 
         /************************************************************************
         * Fill the sliding window buffer with some known vales.  DecodeLZSS must
@@ -102,8 +82,8 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo,
         for (int t = tidx; t < windowsize; t += group_size) {
             slidingWindow[t] = ' ';
         }
-
-        barrier(CLK_LOCAL_MEM_FENCE);
+        barrier(CLK_LOCAL_MEM_FENCE);    
+        
         /************************************************************************
         * Copy MAX_CODED bytes from the input file into the uncoded lookahead
         * buffer.
@@ -111,8 +91,25 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo,
         //__local char out_array[BLOCKSIZE];
         // TODO try using local array for output and use all threads to copy it back to outfifo
         if (tidx == 0) {
-            int len_out = 0;
-            int read = 0
+            /* 8 code flags and encoded strings */
+            unsigned char flags, flagPos, encodedData[16];
+            int nextEncoded;                /* index into encodedData */
+            encoded_string_t matchData;
+            int c, read, len_out;
+            unsigned int i;
+            unsigned int len; /* length of string */
+            /* head of sliding window and lookahead */
+            unsigned int windowHead, uncodedHead;
+
+            /* convert output file to bitfile */
+            // bfpOut = MakeBitFile(fpOut, BF_WRITE);
+            flags = 0;
+            flagPos = 0x01;
+            nextEncoded = 0;
+            windowHead = 0;
+            uncodedHead = 0;
+            len_out = 0;
+            read = 0
             for (len = 0; len < MAX_CODED && (c = infifo[gid].string[read]) != EOF; len++) {
                 uncodedLookahead[len] = c;
                 read++;
@@ -127,7 +124,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo,
                 return i; /* InitializeSearchStructures returned an error *
                 }*/
 
-                matchData = FindMatch(windowHead, uncodedHead, slidingWindow, uncodedLookahead);
+                matchData = FindMatch(windowHead, uncodedHead, windowsize, slidingWindow, uncodedLookahead);
 
                 outfifo[gid].id = gid;
                 /* now encoded the rest of the file until an EOF is read */
@@ -140,10 +137,12 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo,
                     if (matchData.length <= MAX_UNCODED) {
                         /* not long enough match.  write uncoded flag and character */
                         //BitFilePutBit(UNCODED, bfpOut);
-                        outfifo[gid].string[len_out++] = 1;
-                        outfifo[gid].string[len_out++] = uncodedLookahead[uncodedHead];
+                        //outfifo[gid].string[len_out++] = 1;
+                        //outfifo[gid].string[len_out++] = uncodedLookahead[uncodedHead];
                         //BitFilePutChar(uncodedLookahead[uncodedHead], bfpOut);
                         matchData.length = 1; /* set to 1 for 1 byte uncoded */
+                        flags |= flagPos;       /* mark with uncoded byte flag */
+                        encodedData[nextEncoded++] = uncodedLookahead[uncodedHead];
                     } else {
                         //unsigned int adjustedLen;
 
@@ -154,8 +153,32 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo,
                         //BitFilePutBit(ENCODED, bfpOut);
                         //BitFilePutBitsNum(bfpOut, &matchData.offset, OFFSET_BITS,sizeof(unsigned int));
                         //BitFilePutBitsNum(bfpOut, &adjustedLen, LENGTH_BITS,sizeof(unsigned int));
-                        outfifo[gid].string[len_out++] = (unsigned char)matchData.length;
-                        outfifo[gid].string[len_out++] = (unsigned char)matchData.offset;
+                        //outfifo[gid].string[len_out++] = (unsigned char)matchData.length;
+                        //outfifo[gid].string[len_out++] = (unsigned char)matchData.offset;
+                        encodedData[nextEncoded++] = (unsigned char)((matchData.offset & 0x0FFF) >> 4);
+                        encodedData[nextEncoded++] = (unsigned char)(((matchData.offset & 0x000F) << 4) |(matchData.length - (MAX_UNCODED + 1)));
+                    }
+
+                    if (flagPos == 0x80)
+                    {
+                        /* we have 8 code flags, write out flags and code buffer */
+                        //putc(flags, outFile);
+                        outfifo[gid].string[len_out++] = flags;
+                        for (i = 0; i < nextEncoded; i++)
+                        {
+                            /* send at most 8 units of code together */
+                            //putc(encodedData[i], outFile);
+                            outfifo[gid].string[len_out++] = encodedData[i];
+                        }
+                        /* reset encoded data buffer */
+                        flags = 0;
+                        flagPos = 0x01;
+                        nextEncoded = 0;
+                    }
+                    else
+                    {
+                        /* we don't have 8 code flags yet, use next bit for next flag */
+                        flagPos <<= 1;
                     }
 
                     /********************************************************************
@@ -165,9 +188,9 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo,
                     i = 0;
                     while ((i < matchData.length) && ((c = infifo[gid].string[read]) != EOF)) {
                         /* add old byte into sliding window and new into lookahead */
-                        ReplaceChar(windowHead, uncodedLookahead[uncodedHead], slidingWindow);
+                        slidingWindow[windowHead] = uncodedLookahead[uncodedHead];
                         uncodedLookahead[uncodedHead] = c;
-                        windowHead = (windowHead + 1) % WINDOW_SIZE;
+                        windowHead = (windowHead + 1) % windowsize;
                         uncodedHead = (uncodedHead + 1) % MAX_CODED;
                         i++;
                         read++;
@@ -175,18 +198,29 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo,
 
                     /* handle case where we hit EOF before filling lookahead */
                     while (i < matchData.length) {
-                        ReplaceChar(windowHead, uncodedLookahead[uncodedHead], slidingWindow);
+                        slidingWindow[windowHead] = uncodedLookahead[uncodedHead];
                         /* nothing to add to lookahead here */
-                        windowHead = (windowHead + 1) % WINDOW_SIZE;
+                        windowHead = (windowHead + 1) % windowsize;
                         uncodedHead = (uncodedHead + 1) % MAX_CODED;
                         len--;
                         i++;
                     }
 
                     /* find match for the remaining characters */
-                    matchData = FindMatch(windowHead, uncodedHead, slidingWindow, uncodedLookahead);
+                    matchData = FindMatch(windowHead, uncodedHead, windowsize, slidingWindow, uncodedLookahead);
                 }
 
+                /* write out any remaining encoded data */
+                if (nextEncoded != 0)
+                {
+                    //putc(flags, outFile);
+                    outfifo[gid].string[len_out++] = flags;
+                    for (i = 0; i < nextEncoded; i++)
+                    {
+                        //putc(encodedData[i], outFile);
+                        outfifo[gid].string[len_out++] = encodedData[i];
+                    }
+                }
                 outfifo[gid].len = len_out;
             }
         }

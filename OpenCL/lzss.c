@@ -49,17 +49,21 @@ int EncodeLZSS(FILE *fpin, FILE *fpout)
             if (i != no_of_blocks - 1)
             {
                 printf("Reading error1, expected size %d, read size %d ", bsize, result);
+                free(infifo);
+                free(outfifo);
                 exit(3);
             }
         }
         infifo[i].len = result;
     }
-    callKernel(infifo, outfifo, no_of_blocks);
+    callKernel(infifo, outfifo, no_of_blocks, "encode.cl", "EncodeLZSS");
 
     // write to file
+    fputc((char)no_of_blocks, fpout);
     for(int i=0; i<no_of_blocks; i++)
     {
         fwrite(outfifo[i].string, 1, outfifo[i].len, fpout);
+        fputc(0x1D, fpout);
     }
 
     // free memory
@@ -67,13 +71,68 @@ int EncodeLZSS(FILE *fpin, FILE *fpout)
     free(outfifo);
 }
 
-void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks)
+int DecodeLZSS(FILE *fpIn, FILE *fpOut)
+{
+    if(fpin == NULL || fpout == NULL)
+    {
+        printf("No file\n");
+        exit(1);
+    }
+
+    FIFO *infifo;
+    FIFO *outfifo;
+    fseek(fpin, 0, SEEK_END);
+    long totalSize = ftell(fpin);
+    fseek(fpin, 0, SEEK_SET);
+
+    // get the total no of blocks used from the first character of the compressed string
+    int no_of_blocks = (int) fgetc(fpIn);
+
+    infifo = (FIFO *)malloc(sizeof(FIFO) * no_of_blocks);
+    outfifo = (FIFO *)malloc(sizeof(FIFO) * no_of_blocks);
+
+    int block_no = 0;
+    int len_str = 0;
+    int c;
+    while((c = fgetc(fpIn)) == EOF)
+    {
+        if( c == 0x1D)
+        {
+            infifo[block_no].id = block_no;
+            infifo[block_no].len = len_str;
+            block_no++;
+            len_str = 0;
+        } else
+        {
+            infifo[block_no].string[len_str++] = c;
+        }        
+    }
+    if(block_no != no_of_blocks)
+    {
+        printf("Some error occurred during Compression\n");
+        free(infifo);
+        free(outfifo);
+        exit(1);
+    }
+    callKernel(infifo, outfifo, no_of_blocks, "decode.cl", "DecodeLZSS");
+
+    // write to file
+    for(int i=0; i<no_of_blocks; i++)
+    {
+        fwrite(outfifo[i].string, 1, outfifo[i].len, fpout);
+    }
+    // free memory
+    free(infifo);
+    free(outfifo);
+}
+
+void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename, char* cl_kernelname)
 {
     FILE *fp;
     char *source_str;
     size_t source_size;
 
-    fp = fopen("encode.cl", "r");
+    fp = fopen(cl_filename, "r");
     if (!fp)
     {
         fprintf(stderr, "Failed to load kernel.\n");
@@ -116,7 +175,7 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks)
 
     clBuildProgram(program, 0, NULL, NULL, NULL, NULL);
 
-    kernel = clCreateKernel(program, "EncodeLZSS", &err);
+    kernel = clCreateKernel(program, cl_kernelname, &err);
 
     d_inf = clCreateBuffer(context, CL_MEM_READ_ONLY, bytes, NULL, NULL);
     d_outf = clCreateBuffer(context, CL_MEM_READ_ONLY, bytes, NULL, NULL);
@@ -143,105 +202,3 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks)
     clReleaseContext(context);
 }
 
-int DecodeLZSS(FILE *fpIn, FILE *fpOut)
-{
-    bit_file_t *bfpIn;
-    int c;
-    unsigned int i, nextChar;
-    encoded_string_t code; /* offset/length code for string */
-
-    /* use stdin if no input file */
-    if ((NULL == fpIn) || (NULL == fpOut))
-    {
-        errno = ENOENT;
-        return -1;
-    }
-
-    /* convert input file to bitfile */
-    bfpIn = MakeBitFile(fpIn, BF_READ);
-
-    if (NULL == bfpIn)
-    {
-        perror("Making Input File a BitFile");
-        return -1;
-    }
-
-    /************************************************************************
-    * Fill the sliding window buffer with some known vales.  EncodeLZSS must
-    * use the same values.  If common characters are used, there's an
-    * increased chance of matching to the earlier strings.
-    ************************************************************************/
-    memset(slidingWindow, ' ', WINDOW_SIZE * sizeof(unsigned char));
-
-    nextChar = 0;
-
-    while (1)
-    {
-        if ((c = BitFileGetBit(bfpIn)) == EOF)
-        {
-            /* we hit the EOF */
-            break;
-        }
-
-        if (c == UNCODED)
-        {
-            /* uncoded character */
-            if ((c = BitFileGetChar(bfpIn)) == EOF)
-            {
-                break;
-            }
-
-            /* write out byte and put it in sliding window */
-            putc(c, fpOut);
-            slidingWindow[nextChar] = c;
-            nextChar = Wrap((nextChar + 1), WINDOW_SIZE);
-        }
-        else
-        {
-            /* offset and length */
-            code.offset = 0;
-            code.length = 0;
-
-            if ((BitFileGetBitsNum(bfpIn, &code.offset, OFFSET_BITS,
-                                   sizeof(unsigned int))) == EOF)
-            {
-                break;
-            }
-
-            if ((BitFileGetBitsNum(bfpIn, &code.length, LENGTH_BITS,
-                                   sizeof(unsigned int))) == EOF)
-            {
-                break;
-            }
-
-            code.length += MAX_UNCODED + 1;
-
-            /****************************************************************
-            * Write out decoded string to file and lookahead.  It would be
-            * nice to write to the sliding window instead of the lookahead,
-            * but we could end up overwriting the matching string with the
-            * new string if abs(offset - next char) < match length.
-            ****************************************************************/
-            for (i = 0; i < code.length; i++)
-            {
-                c = slidingWindow[Wrap((code.offset + i), WINDOW_SIZE)];
-                putc(c, fpOut);
-                uncodedLookahead[i] = c;
-            }
-
-            /* write out decoded string to sliding window */
-            for (i = 0; i < code.length; i++)
-            {
-                slidingWindow[Wrap((nextChar + i), WINDOW_SIZE)] =
-                    uncodedLookahead[i];
-            }
-
-            nextChar = Wrap((nextChar + code.length), WINDOW_SIZE);
-        }
-    }
-
-    /* we've decoded everything, free bitfile structure */
-    BitFileToFILE(bfpIn);
-
-    return 0;
-}
