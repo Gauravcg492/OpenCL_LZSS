@@ -1,6 +1,5 @@
 #define MAX_UNCODED 2
 #define MAX_CODED ((1 << 4) + MAX_UNCODED)
-#define BLOCKSIZE 1048576
 
 typedef struct encoded_string_t {
   unsigned int offset; /* offset to start of longest match */
@@ -70,6 +69,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
     int gid = get_group_id(0);
     int group_size = get_local_size(0);
     if (id < n) {
+        printf("Thread id %d\n",id);
         /* cyclic buffer sliding window of already read characters */
         unsigned char slidingWindow[4096];
         unsigned char uncodedLookahead[18];
