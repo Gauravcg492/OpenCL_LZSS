@@ -14,47 +14,48 @@ struct __attribute__((packed)) FIFO {
 };
 
 encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHead, unsigned int windowsize, __local unsigned char* slidingWindow, __local unsigned char* uncodedLookahead) {
-  encoded_string_t matchData;
-  unsigned int i;
-  unsigned int j;
+    encoded_string_t matchData;
+    unsigned int i;
+    unsigned int j;
 
-  matchData.length = 0;
-  matchData.offset = 0;
-  i = windowHead; /* start at the beginning of the sliding window */
-  j = 0;
+    matchData.length = 0;
+    matchData.offset = 0;
+    i = windowHead; /* start at the beginning of the sliding window */
+    j = 0;
+    printf("Entered findmatch\n");
 
-  while (1) {
-    if (slidingWindow[i] == uncodedLookahead[uncodedHead]) 
-    {
-      /* we matched one. how many more match? */
-      j = 1;
+    while (1) {
+        if (slidingWindow[i] == uncodedLookahead[uncodedHead]) 
+        {
+            /* we matched one. how many more match? */
+            j = 1;
 
-      while (slidingWindow[(i + j) % windowsize] == uncodedLookahead[((uncodedHead + j) % MAX_CODED)]) 
-      {
-        if (j >= MAX_CODED) {
-          break;
+            while (slidingWindow[(i + j) % windowsize] == uncodedLookahead[((uncodedHead + j) % MAX_CODED)]) 
+            {
+                if (j >= MAX_CODED) {
+                    break;
+                }
+                j++;
+            }
+
+            if (j > matchData.length) {
+                matchData.length = j;
+                matchData.offset = i;
+            }
         }
-        j++;
-      }
 
-      if (j > matchData.length) {
-        matchData.length = j;
-        matchData.offset = i;
-      }
-    }
+        if (j >= MAX_CODED) {
+            matchData.length = MAX_CODED;
+            break;
+        }
 
-    if (j >= MAX_CODED) {
-      matchData.length = MAX_CODED;
-      break;
+        i = ((i + 1) % windowsize);
+        if (i == windowHead) {
+            /* we wrapped around */
+            break;
+        }
     }
-
-    i = ((i + 1) % windowsize);
-    if (i == windowHead) {
-      /* we wrapped around */
-      break;
-    }
-  }
-  return matchData;
+    return matchData;
 }
 
 /*
@@ -108,7 +109,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
             /* head of sliding window and lookahead */
             unsigned int uncodedHead = 0;
             unsigned int windowHead = 0;
-
+            printf("Filling unencoded lookahead\n");
             //for (len = 0; len < MAX_CODED && (c = infifo[gid].string[read]) != EOF; len++) {
             for (len =0; len < MAX_CODED && len < infifo[gid].len; len++)
             {
@@ -116,12 +117,15 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                 uncodedLookahead[len] = c;
                 read++;
             }
-
+            printf("Completed filling\n");
             if (len != 0) {
+                printf("Calling find match\n");
                 matchData = FindMatch(windowHead, uncodedHead, windowsize, slidingWindow, uncodedLookahead);
+                printf("find match returned\n")
 
                 outfifo[gid].id = gid;
                 /* now encoded the rest of the file until an EOF is read */
+                printf("Entering while loop\n");
                 while (len > 0) {
                     if (matchData.length > len) {
                         /* garbage beyond last data happened to extend match length */
@@ -179,6 +183,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     * Replace the matchData.length worth of bytes we've matched in the
                     * sliding window with new bytes from the input file.
                     ********************************************************************/
+                    printf("Entering loop within loop\n");
                     i = 0;
                     //while ((i < matchData.length) && ((c = infifo[gid].string[read]) != EOF)) {
                     while ((i < matchData.length) && read < infifo[gid].len)
@@ -192,7 +197,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                         i++;
                         read++;
                     }
-
+                    printf("Entering loop within loop 2\n");
                     /* handle case where we hit EOF before filling lookahead */
                     while (i < matchData.length) {
                         slidingWindow[windowHead] = uncodedLookahead[uncodedHead];
