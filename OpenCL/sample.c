@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/time.h>
 #include "lzss.h"
 #include "optlist.h"
 
@@ -12,6 +14,8 @@ typedef enum
 
 int main(int argc, char *argv[])
 {
+    struct timeval t1_start,t1_end;
+
     option_t *optList;
     option_t *thisOpt;
     FILE *fpIn;             /* pointer to open input file */
@@ -134,6 +138,7 @@ int main(int argc, char *argv[])
     }
 
     /* we have valid parameters encode or decode */
+    gettimeofday(&t1_start,0);
     if (mode == ENCODE)
     {
         EncodeLZSS(fpIn, fpOut);
@@ -142,7 +147,9 @@ int main(int argc, char *argv[])
     {
         DecodeLZSS(fpIn, fpOut);
     }
-
+    gettimeofday(&t1_end,0);
+    double alltime = (t1_end.tv_sec-t1_start.tv_sec) + (t1_end.tv_usec - t1_start.tv_usec)/1000000.0;
+    printf("\tAll the time took:\t%f \n", alltime);
     /* remember to close files */
     fclose(fpIn);
     fclose(fpOut);

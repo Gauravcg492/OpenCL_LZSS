@@ -63,6 +63,7 @@ encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHe
 
 __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n,const unsigned int windowsize) 
 {
+    printf("kernel called\n");
     int id = get_global_id(0);
     int gid = get_group_id(0);
     int group_size = get_local_size(0);
@@ -92,6 +93,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
         // TODO try using local array for output and use all threads to copy it back to outfifo
         if (tidx == 0) {
             /* 8 code flags and encoded strings */
+            printf("Thread %d\nInp len %d\n",gid,infifo[gid].len);
             unsigned char flags, flagPos, encodedData[16];
             int nextEncoded;                /* index into encodedData */
             encoded_string_t matchData;
