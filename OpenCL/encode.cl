@@ -121,7 +121,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
             if (len != 0) {
                 printf("Calling find match\n");
                 matchData = FindMatch(windowHead, uncodedHead, windowsize, slidingWindow, uncodedLookahead);
-                printf("find match returned\n")
+                printf("find match returned\n");
 
                 outfifo[gid].id = gid;
                 /* now encoded the rest of the file until an EOF is read */
