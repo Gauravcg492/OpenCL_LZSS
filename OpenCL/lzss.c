@@ -4,8 +4,7 @@
 #include <math.h>
 #include <CL/opencl.h>
 #define WINDOWSIZE 4096
-#define BLOCKSIZE 1048576
-#define MINSIZE 1048576
+#define BLOCKSIZE 102400
 #define MAX_UNCODED 2
 #define MAX_CODED ((1 << 4) + MAX_UNCODED)
 #define MAX_SOURCE_SIZE (0x100000)
@@ -32,7 +31,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     fseek(fpIn, 0, SEEK_END);
     long totalSize = ftell(fpIn);
     fseek(fpIn, 0, SEEK_SET);
-    if (totalSize < MINSIZE)
+    if (totalSize < BLOCKSIZE)
     {
         printf("No use of parallel GPU computation");
         return 0;
@@ -76,7 +75,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     {
         printf("%d ", outfifo[i].len);
         fwrite(outfifo[i].string, 1, outfifo[i].len, fpOut);
-        fputc(0x1D, fpOut);
+        fputc((char)0x1D, fpOut);
     }
     printf("\nWrite to file completed\n");
     // free memory
@@ -122,7 +121,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
             infifo[block_no].string[len_str++] = c;
         }        
     }
-    printf("\nfile read completed\n");
+    printf("\nfile read completed with blocks %d\n", block_no);
     if(block_no != no_of_blocks)
     {
         printf("Some error occurred during Compression\n");
@@ -152,7 +151,7 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename
     size_t source_size;
     printf("Filename %s\nKernelname %s\n",cl_filename,cl_kernelname);
 
-    fp = fopen("encode.cl", "r");
+    fp = fopen(cl_filename, "r");
     if (!fp)
     {
         fprintf(stderr, "Failed to load kernel.\n");
@@ -179,9 +178,9 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename
 
     size_t bytes = sizeof(FIFO) * no_of_blocks;
     size_t globalSize;
-    size_t localSize = 128;
-    globalSize = no_of_blocks * localSize;
-    //globalSize = ceil(no_of_blocks / (float)localSize) * localSize;
+    size_t localSize = 256;
+    //globalSize = no_of_blocks * localSize;
+    globalSize = ceil((float)no_of_blocks / (float)localSize) * localSize;
 
     err = clGetPlatformIDs(1, &cpPlatform, NULL);
 
@@ -261,7 +260,7 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename
     ret = clGetProgramBuildInfo(program, dev_id, CL_PROGRAM_BUILD_LOG, len, buffer, NULL);
     printf("Build info\n%s\n", buffer);
 
-    kernel = clCreateKernel(program, "EncodeLZSS", &err);
+    kernel = clCreateKernel(program, cl_kernelname, &err);
     if(err != CL_SUCCESS) {
         perror("Problem creating kernel.\n");
         printf("Error Code: %d\n", err);
@@ -293,8 +292,8 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename
     err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_outf);
     err |= clSetKernelArg(kernel, 2, sizeof(unsigned int), &no_of_blocks);
     err |= clSetKernelArg(kernel, 3, sizeof(unsigned int), &window_size);
-    err |= clSetKernelArg(kernel, 4, sizeof(unsigned char)*window_size, NULL);
-    err |= clSetKernelArg(kernel, 5, sizeof(unsigned char)*MAX_CODED, NULL);
+    //err |= clSetKernelArg(kernel, 4, sizeof(unsigned char)*window_size, NULL);
+    //err |= clSetKernelArg(kernel, 5, sizeof(unsigned char)*MAX_CODED, NULL);
     if(err != CL_SUCCESS) {
         perror("Problem setting arguments.\n");
         printf("Error Code: %d\n", err);

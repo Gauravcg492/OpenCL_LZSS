@@ -1,6 +1,6 @@
 #define MAX_UNCODED 2
 #define MAX_CODED ((1 << 4) + MAX_UNCODED)
-#define BLOCKSIZE 1048576
+#define BLOCKSIZE 102400
 
 typedef struct encoded_string_t {
   unsigned int offset; /* offset to start of longest match */
@@ -13,7 +13,7 @@ struct __attribute__((packed)) FIFO {
   char string[BLOCKSIZE];
 };
 
-encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHead, unsigned int windowsize, __local unsigned char* slidingWindow, __local unsigned char* uncodedLookahead) {
+encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHead, unsigned int windowsize, unsigned char* slidingWindow, unsigned char* uncodedLookahead) {
     encoded_string_t matchData;
     unsigned int i;
     unsigned int j;
@@ -62,17 +62,18 @@ encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHe
  * Main encoding kernel
  */
 
-__kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n,const unsigned int windowsize, 
-                          __local unsigned char* slidingWindow, __local unsigned char* uncodedLookahead) 
+__kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n,const unsigned int windowsize) 
+                          //unsigned char* slidingWindow, unsigned char* uncodedLookahead) 
 {
     //printf("kernel called\n");
     int id = get_global_id(0);
     int gid = get_group_id(0);
     int group_size = get_local_size(0);
-    if (id < n * group_size) {
+    if (id < n) {
+        printf("Thread id %d\n",id);
         /* cyclic buffer sliding window of already read characters */
-        //__local unsigned char slidingWindow[windowsize];
-        //__local unsigned char uncodedLookahead[MAX_CODED];
+        unsigned char slidingWindow[4096];
+        unsigned char uncodedLookahead[18];
 
         /************************************************************************
         * Fill the sliding window buffer with some known vales.  DecodeLZSS must
@@ -80,12 +81,12 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
         * increased chance of matching to the earlier strings.
         ************************************************************************/
         // memset(slidingWindow, ' ', WINDOW_SIZE * sizeof(unsigned char));
-        int tidx = get_local_id(0);
+        //int tidx = get_local_id(0);
         #pragma unroll
-        for (int t = tidx; t < windowsize; t += group_size) {
+        for (int t = 0; t < windowsize; t ++) {
             slidingWindow[t] = ' ';
         }
-        barrier(CLK_GLOBAL_MEM_FENCE);    
+        //barrier(CLK_GLOBAL_MEM_FENCE);    
         
         /************************************************************************
         * Copy MAX_CODED bytes from the input file into the uncoded lookahead
@@ -93,11 +94,11 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
         ************************************************************************/
         //__local char out_array[BLOCKSIZE];
         // TODO try using local array for output and use all threads to copy it back to outfifo
-        if (tidx == 0) {
-            printf("group size %d\n", group_size);
+        if (true) {
+            //printf("group size %d\n", group_size);
             //printf("1%c1%c2%s",slidingWindow[0], slidingWindow[1], slidingWindow);
             /* 8 code flags and encoded strings */
-            printf("Thread %d\nInp len %d\n",gid,infifo[gid].len);
+            printf("Thread %d\nInp len %d\n",id,infifo[id].len);
             unsigned char encodedData[16];
             unsigned char flags = 0;
             unsigned char flagPos = 0x01;
@@ -113,9 +114,9 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
             unsigned int windowHead = 0;
             //printf("Filling unencoded lookahead\n");
             //for (len = 0; len < MAX_CODED && (c = infifo[gid].string[read]) != EOF; len++) {
-            for (len =0; len < MAX_CODED && read < infifo[gid].len; len++)
+            for (len =0; len < MAX_CODED && read < infifo[id].len; len++)
             {
-                c = infifo[gid].string[read];
+                c = infifo[id].string[read];
                 uncodedLookahead[len] = c;
                 read++;
             }
@@ -125,10 +126,10 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                 matchData = FindMatch(windowHead, uncodedHead, windowsize, slidingWindow, uncodedLookahead);
                 //printf("find match returned\n");
 
-                outfifo[gid].id = gid;
+                outfifo[id].id = id;
                 /* now encoded the rest of the file until an EOF is read */
                 //printf("Entering while loop\n");
-                while (len > 0 && read < infifo[gid].len) {
+                while (len > 0 && read < infifo[id].len) {
                     //printf("Sliding window %c %c\n", slidingWindow[0], slidingWindow[1]);
                     //printf("Length value: %d\nMatch len %d\nMatch off %d\n", len, matchData.length, matchData.offset);
                     if (matchData.length > len) {
@@ -165,12 +166,12 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     {
                         /* we have 8 code flags, write out flags and code buffer */
                         //putc(flags, outFile);
-                        outfifo[gid].string[len_out++] = flags;
+                        outfifo[id].string[len_out++] = flags;
                         for (i = 0; i < nextEncoded; i++)
                         {
                             /* send at most 8 units of code together */
                             //putc(encodedData[i], outFile);
-                            outfifo[gid].string[len_out++] = encodedData[i];
+                            outfifo[id].string[len_out++] = encodedData[i];
                         }
                         /* reset encoded data buffer */
                         flags = 0;
@@ -190,9 +191,9 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     //printf("Entering loop within loop\n");
                     i = 0;
                     //while ((i < matchData.length) && ((c = infifo[gid].string[read]) != EOF)) {
-                    while ((i < matchData.length) && read < infifo[gid].len)
+                    while ((i < matchData.length) && read < infifo[id].len)
                     {
-                        c = infifo[gid].string[read];
+                        c = infifo[id].string[read];
                         /* add old byte into sliding window and new into lookahead */
                         slidingWindow[windowHead] = uncodedLookahead[uncodedHead];
                         uncodedLookahead[uncodedHead] = c;
@@ -220,14 +221,14 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                 if (nextEncoded != 0)
                 {
                     //putc(flags, outFile);
-                    outfifo[gid].string[len_out++] = flags;
+                    outfifo[id].string[len_out++] = flags;
                     for (i = 0; i < nextEncoded; i++)
                     {
                         //putc(encodedData[i], outFile);
-                        outfifo[gid].string[len_out++] = encodedData[i];
+                        outfifo[id].string[len_out++] = encodedData[i];
                     }
                 }
-                outfifo[gid].len = len_out;
+                outfifo[id].len = len_out;
             }
         }
     }
