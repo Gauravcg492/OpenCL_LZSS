@@ -13,7 +13,7 @@ struct __attribute__((packed)) FIFO {
   char string[BLOCKSIZE];
 };
 
-encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHead, unsigned int windowsize, unsigned char* slidingWindow, unsigned char* uncodedLookahead) {
+encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHead, unsigned int windowsize, __local unsigned char* slidingWindow, __local unsigned char* uncodedLookahead) {
   encoded_string_t matchData;
   unsigned int i;
   unsigned int j;
@@ -113,17 +113,19 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
             uncodedHead = 0;
             len_out = 0;
             read = 0;
-            for (len = 0; len < MAX_CODED && (c = infifo[gid].string[read]) != EOF; len++) {
+            //for (len = 0; len < MAX_CODED && (c = infifo[gid].string[read]) != EOF; len++) {
+            for (len =0; len < MAX_CODED && len < infifo[gid].len; len++)
+                c = infifo[gid].string[read];
                 uncodedLookahead[len] = c;
                 read++;
             }
 
             if (len != 0) {
 
-                /* Look for matching string in sliding window */
+                /* Look for matching string in sliding window 
                 //i = InitializeSearchStructures();
 
-                /*if (0 != i) {
+                if (0 != i) {
                 return i; /* InitializeSearchStructures returned an error *
                 }*/
 
@@ -189,7 +191,10 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     * sliding window with new bytes from the input file.
                     ********************************************************************/
                     i = 0;
-                    while ((i < matchData.length) && ((c = infifo[gid].string[read]) != EOF)) {
+                    //while ((i < matchData.length) && ((c = infifo[gid].string[read]) != EOF)) {
+                    while ((i < matchData.length) && read < infifo[gid].len)
+                    {
+                        c = infifo[gid].string[read];
                         /* add old byte into sliding window and new into lookahead */
                         slidingWindow[windowHead] = uncodedLookahead[uncodedHead];
                         uncodedLookahead[uncodedHead] = c;

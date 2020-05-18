@@ -64,10 +64,12 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                 {
                     /* shifted out all the flag bits, read a new flag */
                     //if ((c = getc(inFile)) == EOF)
-                    if ((c = infifo[gid].string[read]) == EOF)
+                    //if ((c = infifo[gid].string[read]) == EOF)
+                    if(read >= infifo[gid].len)
                     {
                         break;
                     }
+                    c = infifo[gid].string[read];
                     read++;
                     flags = c & 0xFF;
                     flagsUsed = 0;
@@ -77,10 +79,12 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                 {
                     /* uncoded character */
                     //if ((c = BitFileGetChar(bfpIn)) == EOF)
-                    if ((c = infifo[gid].string[read]) == EOF)
+                    //if ((c = infifo[gid].string[read]) == EOF)
+                    if (read >= infifo[gid].len)
                     {
                         break;
                     }
+                    c = infifo[gid].string[read];
                     read++;
                     /* write out byte and put it in sliding window */
                     //putc(c, fpOut);
@@ -95,15 +99,19 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     code.length = 0;
 
                     /* offset and length */
-                    if ((code.offset = infifo[gid].string[read]) == EOF)
+                    //if ((code.offset = infifo[gid].string[read]) == EOF)
+                    if(read >= infifo[gid].len)
                     {
                         break;
                     }
+                    code.offset = infifo[gid].string[read];
                     read++;
-                    if ((code.length = infifo[gid].string[read]) == EOF)
+                    //if ((code.length = infifo[gid].string[read]) == EOF)
+                    if(read >= infifo[gid].len)
                     {
                         break;
                     }
+                    code.length = infifo[gid].string[read];
                     read++;
 
                     /* unpack offset and length */
