@@ -121,15 +121,15 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
             }
             printf("Completed filling\n");
             if (len != 0) {
-                printf("Calling find match\n");
+                //printf("Calling find match\n");
                 matchData = FindMatch(windowHead, uncodedHead, windowsize, slidingWindow, uncodedLookahead);
-                printf("find match returned\n");
+                //printf("find match returned\n");
 
                 outfifo[gid].id = gid;
                 /* now encoded the rest of the file until an EOF is read */
-                printf("Entering while loop\n");
+                //printf("Entering while loop\n");
                 while (len > 0) {
-                    printf("Length value: %d\n", len);
+                    printf("Length value: %d\nMatch len %d\nMatch off %d\n", len, matchData.length, matchData.offset);
                     if (matchData.length > len) {
                         /* garbage beyond last data happened to extend match length */
                         matchData.length = len;
@@ -186,7 +186,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     * Replace the matchData.length worth of bytes we've matched in the
                     * sliding window with new bytes from the input file.
                     ********************************************************************/
-                    printf("Entering loop within loop\n");
+                    //printf("Entering loop within loop\n");
                     i = 0;
                     //while ((i < matchData.length) && ((c = infifo[gid].string[read]) != EOF)) {
                     while ((i < matchData.length) && read < infifo[gid].len)
@@ -200,7 +200,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                         i++;
                         read++;
                     }
-                    printf("Entering loop within loop 2\n");
+                    //printf("Entering loop within loop 2\n");
                     /* handle case where we hit EOF before filling lookahead */
                     while (i < matchData.length) {
                         slidingWindow[windowHead] = uncodedLookahead[uncodedHead];
