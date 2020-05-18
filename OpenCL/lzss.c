@@ -4,8 +4,8 @@
 #include <math.h>
 #include <CL/opencl.h>
 #define WINDOWSIZE 4096
-#define BLOCKSIZE 1048576
-#define MINSIZE 1048576
+#define BLOCKSIZE 262144
+#define MINSIZE 262144
 #define MAX_UNCODED 2
 #define MAX_CODED ((1 << 4) + MAX_UNCODED)
 #define MAX_SOURCE_SIZE (0x100000)
