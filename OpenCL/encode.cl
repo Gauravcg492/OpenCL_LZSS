@@ -95,7 +95,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
         // TODO try using local array for output and use all threads to copy it back to outfifo
         if (tidx == 0) {
             printf("Checking sliding window\n");
-            printf("1%c1%c2%s",slidingWindow[0], slidingWindow[1], slidingWindow);
+            //printf("1%c1%c2%s",slidingWindow[0], slidingWindow[1], slidingWindow);
             /* 8 code flags and encoded strings */
             printf("Thread %d\nInp len %d\n",gid,infifo[gid].len);
             unsigned char encodedData[16];
