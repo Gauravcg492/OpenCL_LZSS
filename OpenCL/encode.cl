@@ -22,7 +22,7 @@ encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHe
     matchData.offset = 0;
     i = windowHead; /* start at the beginning of the sliding window */
     j = 0;
-    printf("Entered findmatch\n");
+    //printf("Entered findmatch\n");
 
     while (1) {
         if (slidingWindow[i] == uncodedLookahead[uncodedHead]) 
