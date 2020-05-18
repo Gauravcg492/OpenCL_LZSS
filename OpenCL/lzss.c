@@ -105,11 +105,11 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
 
     int block_no = 0;
     int len_str = 0;
-    char c;
+    int c;
     printf("Reading file\n");
     while((c = fgetc(fpIn)) == EOF)
     {
-        if( c == (char)0x1D)
+        if( strcmp((char)c,(char)0x1D))
         {
             infifo[block_no].id = block_no;
             infifo[block_no].len = len_str;
