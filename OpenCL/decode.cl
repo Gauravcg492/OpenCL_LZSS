@@ -1,6 +1,6 @@
 #define MAX_UNCODED 2
 #define MAX_CODED ((1 << 4) + MAX_UNCODED)
-#define BLOCKSIZE 1048576
+#define BLOCKSIZE 102400
 
 typedef struct encoded_string_t {
   unsigned int offset; /* offset to start of longest match */
@@ -13,18 +13,18 @@ struct __attribute__((packed)) FIFO {
   char string[BLOCKSIZE];
 };
 
-__kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n, const unsigned int windowsize,
-                            __local unsigned char* slidingWindow, __local unsigned char* uncodedLookahead)
+__kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n, const unsigned int windowsize)
+                            //unsigned char* slidingWindow, __local unsigned char* uncodedLookahead)
 {
     int id = get_global_id(0);
     int gid = get_group_id(0);
     int group_size = get_local_size(0);
 
-    if(id < n * group_size) 
+    if(id < n) 
     {
         /* cyclic buffer sliding window of already read characters */
-        //__local unsigned char slidingWindow[windowsize];
-        //__local unsigned char uncodedLookahead[MAX_CODED];
+        unsigned char slidingWindow[4096];
+        unsigned char uncodedLookahead[18];
 
         /************************************************************************
         * Fill the sliding window buffer with some known vales.  DecodeLZSS must
@@ -32,15 +32,15 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
         * increased chance of matching to the earlier strings.
         ************************************************************************/
         // memset(slidingWindow, ' ', WINDOW_SIZE * sizeof(unsigned char));
-        int tidx = get_local_id(0);
+        //int tidx = get_local_id(0);
         #pragma unroll
-        for (int t = tidx; t < windowsize; t += group_size) {
+        for (int t = 0; t < windowsize; t ++) {
             slidingWindow[t] = ' ';
         }
-        barrier(CLK_LOCAL_MEM_FENCE);
+        //barrier(CLK_LOCAL_MEM_FENCE);
 
 
-        if(tidx == 0)
+        if(true)
         {
             int c, read, len_out;
             unsigned char flags, flagsUsed;     /* encoded/not encoded flag */
@@ -54,7 +54,7 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
             read = 0;
             len_out = 0;
 
-            outfifo[gid].id = gid;
+            outfifo[id].id = id;
             while (1)
             {
                 flags >>= 1;
@@ -65,11 +65,11 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     /* shifted out all the flag bits, read a new flag */
                     //if ((c = getc(inFile)) == EOF)
                     //if ((c = infifo[gid].string[read]) == EOF)
-                    if(read >= infifo[gid].len)
+                    if(read >= infifo[id].len)
                     {
                         break;
                     }
-                    c = infifo[gid].string[read];
+                    c = infifo[id].string[read];
                     read++;
                     flags = c & 0xFF;
                     flagsUsed = 0;
@@ -80,15 +80,15 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     /* uncoded character */
                     //if ((c = BitFileGetChar(bfpIn)) == EOF)
                     //if ((c = infifo[gid].string[read]) == EOF)
-                    if (read >= infifo[gid].len)
+                    if (read >= infifo[id].len)
                     {
                         break;
                     }
-                    c = infifo[gid].string[read];
+                    c = infifo[id].string[read];
                     read++;
                     /* write out byte and put it in sliding window */
                     //putc(c, fpOut);
-                    outfifo[gid].string[len_out++] = c;
+                    outfifo[id].string[len_out++] = c;
                     slidingWindow[nextChar] = c;
                     nextChar = (nextChar + 1) % windowsize;
                 }
@@ -100,18 +100,18 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
 
                     /* offset and length */
                     //if ((code.offset = infifo[gid].string[read]) == EOF)
-                    if(read >= infifo[gid].len)
+                    if(read >= infifo[id].len)
                     {
                         break;
                     }
-                    code.offset = infifo[gid].string[read];
+                    code.offset = infifo[id].string[read];
                     read++;
                     //if ((code.length = infifo[gid].string[read]) == EOF)
-                    if(read >= infifo[gid].len)
+                    if(read >= infifo[id].len)
                     {
                         break;
                     }
-                    code.length = infifo[gid].string[read];
+                    code.length = infifo[id].string[read];
                     read++;
 
                     /* unpack offset and length */
@@ -130,7 +130,7 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     {
                         c = slidingWindow[(code.offset + i) % windowsize];
                         //putc(c, fpOut);
-                        outfifo[gid].string[len_out++] = c;
+                        outfifo[id].string[len_out++] = c;
                         uncodedLookahead[i] = c;
                     }
 
@@ -143,7 +143,7 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                     nextChar = (nextChar + code.length) % windowsize;
                 }
             }
-            outfifo[gid].len = len_out;
+            outfifo[id].len = len_out;
         }
     }
 }

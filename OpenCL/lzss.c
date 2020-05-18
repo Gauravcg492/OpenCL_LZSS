@@ -151,7 +151,7 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename
     size_t source_size;
     printf("Filename %s\nKernelname %s\n",cl_filename,cl_kernelname);
 
-    fp = fopen("encode.cl", "r");
+    fp = fopen(cl_filename, "r");
     if (!fp)
     {
         fprintf(stderr, "Failed to load kernel.\n");
@@ -178,7 +178,7 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename
 
     size_t bytes = sizeof(FIFO) * no_of_blocks;
     size_t globalSize;
-    size_t localSize = 128;
+    size_t localSize = 256;
     //globalSize = no_of_blocks * localSize;
     globalSize = ceil((float)no_of_blocks / (float)localSize) * localSize;
 
@@ -260,7 +260,7 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename
     ret = clGetProgramBuildInfo(program, dev_id, CL_PROGRAM_BUILD_LOG, len, buffer, NULL);
     printf("Build info\n%s\n", buffer);
 
-    kernel = clCreateKernel(program, "EncodeLZSS", &err);
+    kernel = clCreateKernel(program, cl_kernelname, &err);
     if(err != CL_SUCCESS) {
         perror("Problem creating kernel.\n");
         printf("Error Code: %d\n", err);
