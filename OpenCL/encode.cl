@@ -61,7 +61,8 @@ encoded_string_t FindMatch(const unsigned int windowHead, unsigned int uncodedHe
  * Main encoding kernel
  */
 
-__kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n,const unsigned int windowsize) 
+__kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n,const unsigned int windowsize, 
+                          __local unsigned char* slidingWindow, __local unsigned char* uncodedLookahead) 
 {
     printf("kernel called\n");
     int id = get_global_id(0);
@@ -69,8 +70,8 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
     int group_size = get_local_size(0);
     if (id < n * group_size) {
         /* cyclic buffer sliding window of already read characters */
-        __local unsigned char slidingWindow[windowsize];
-        __local unsigned char uncodedLookahead[MAX_CODED];
+        //__local unsigned char slidingWindow[windowsize];
+        //__local unsigned char uncodedLookahead[MAX_CODED];
 
         /************************************************************************
         * Fill the sliding window buffer with some known vales.  DecodeLZSS must
@@ -111,7 +112,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
             windowHead = 0;
             uncodedHead = 0;
             len_out = 0;
-            read = 0
+            read = 0;
             for (len = 0; len < MAX_CODED && (c = infifo[gid].string[read]) != EOF; len++) {
                 uncodedLookahead[len] = c;
                 read++;

@@ -13,7 +13,8 @@ struct __attribute__((packed)) FIFO {
   char string[BLOCKSIZE];
 };
 
-__kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n, const unsigned int windowsize)
+__kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *outfifo, const unsigned int n, const unsigned int windowsize,
+                            __local unsigned char* slidingWindow, __local unsigned char* uncodedLookahead)
 {
     int id = get_global_id(0);
     int gid = get_group_id(0);
@@ -22,8 +23,8 @@ __kernel void DecodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
     if(id < n * group_size) 
     {
         /* cyclic buffer sliding window of already read characters */
-        __local unsigned char slidingWindow[windowsize];
-        __local unsigned char uncodedLookahead[MAX_CODED];
+        //__local unsigned char slidingWindow[windowsize];
+        //__local unsigned char uncodedLookahead[MAX_CODED];
 
         /************************************************************************
         * Fill the sliding window buffer with some known vales.  DecodeLZSS must
