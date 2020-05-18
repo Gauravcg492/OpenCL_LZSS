@@ -109,7 +109,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     printf("Reading file\n");
     while((c = fgetc(fpIn)) == EOF)
     {
-        if( c == 0x1D)
+        if( c == 29)
         {
             infifo[block_no].id = block_no;
             infifo[block_no].len = len_str;
