@@ -121,7 +121,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
             infifo[block_no].string[len_str++] = c;
         }        
     }
-    printf("\nfile read completed\n");
+    printf("\nfile read completed with blocks %d\n", block_no);
     if(block_no != no_of_blocks)
     {
         printf("Some error occurred during Compression\n");
