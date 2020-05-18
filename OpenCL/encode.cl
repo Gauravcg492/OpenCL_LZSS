@@ -94,7 +94,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
         //__local char out_array[BLOCKSIZE];
         // TODO try using local array for output and use all threads to copy it back to outfifo
         if (tidx == 0) {
-            printf("Checking sliding window\n");
+            printf("group size %d\n", group_size);
             //printf("1%c1%c2%s",slidingWindow[0], slidingWindow[1], slidingWindow);
             /* 8 code flags and encoded strings */
             printf("Thread %d\nInp len %d\n",gid,infifo[gid].len);
@@ -111,15 +111,15 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
             /* head of sliding window and lookahead */
             unsigned int uncodedHead = 0;
             unsigned int windowHead = 0;
-            printf("Filling unencoded lookahead\n");
+            //printf("Filling unencoded lookahead\n");
             //for (len = 0; len < MAX_CODED && (c = infifo[gid].string[read]) != EOF; len++) {
-            for (len =0; len < MAX_CODED && len < infifo[gid].len; len++)
+            for (len =0; len < MAX_CODED && read < infifo[gid].len; len++)
             {
                 c = infifo[gid].string[read];
                 uncodedLookahead[len] = c;
                 read++;
             }
-            printf("Completed filling\n");
+            //printf("Completed filling\n");
             if (len != 0) {
                 //printf("Calling find match\n");
                 matchData = FindMatch(windowHead, uncodedHead, windowsize, slidingWindow, uncodedLookahead);
@@ -129,7 +129,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                 /* now encoded the rest of the file until an EOF is read */
                 //printf("Entering while loop\n");
                 while (len > 0) {
-                    printf("Sliding window %c %c\n", slidingWindow[0], slidingWindow[1]);
+                    //printf("Sliding window %c %c\n", slidingWindow[0], slidingWindow[1]);
                     //printf("Length value: %d\nMatch len %d\nMatch off %d\n", len, matchData.length, matchData.offset);
                     if (matchData.length > len) {
                         /* garbage beyond last data happened to extend match length */
