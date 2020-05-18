@@ -95,40 +95,29 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
         if (tidx == 0) {
             /* 8 code flags and encoded strings */
             printf("Thread %d\nInp len %d\n",gid,infifo[gid].len);
-            unsigned char flags, flagPos, encodedData[16];
-            int nextEncoded;                /* index into encodedData */
+            unsigned char encodedData[16];
+            unsigned char flags = 0;
+            unsigned char flagPos = 0x01;
+            int nextEncoded = 0;                /* index into encodedData */
             encoded_string_t matchData;
-            int c, read, len_out;
+            int c;
+            int read = 0;
+            int len_out = 0;
             unsigned int i;
-            unsigned int len; /* length of string */
+            int len; /* length of string */
             /* head of sliding window and lookahead */
-            unsigned int windowHead, uncodedHead;
+            unsigned int uncodedHead = 0;
+            unsigned int windowHead = 0;
 
-            /* convert output file to bitfile */
-            // bfpOut = MakeBitFile(fpOut, BF_WRITE);
-            flags = 0;
-            flagPos = 0x01;
-            nextEncoded = 0;
-            windowHead = 0;
-            uncodedHead = 0;
-            len_out = 0;
-            read = 0;
             //for (len = 0; len < MAX_CODED && (c = infifo[gid].string[read]) != EOF; len++) {
             for (len =0; len < MAX_CODED && len < infifo[gid].len; len++)
+            {
                 c = infifo[gid].string[read];
                 uncodedLookahead[len] = c;
                 read++;
             }
 
             if (len != 0) {
-
-                /* Look for matching string in sliding window 
-                //i = InitializeSearchStructures();
-
-                if (0 != i) {
-                return i; /* InitializeSearchStructures returned an error *
-                }*/
-
                 matchData = FindMatch(windowHead, uncodedHead, windowsize, slidingWindow, uncodedLookahead);
 
                 outfifo[gid].id = gid;
