@@ -129,6 +129,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                 /* now encoded the rest of the file until an EOF is read */
                 printf("Entering while loop\n");
                 while (len > 0) {
+                    printf("Length value: %d\n", len);
                     if (matchData.length > len) {
                         /* garbage beyond last data happened to extend match length */
                         matchData.length = len;
