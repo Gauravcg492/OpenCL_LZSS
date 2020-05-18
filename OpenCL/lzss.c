@@ -293,8 +293,8 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename
     err |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &d_outf);
     err |= clSetKernelArg(kernel, 2, sizeof(unsigned int), &no_of_blocks);
     err |= clSetKernelArg(kernel, 3, sizeof(unsigned int), &window_size);
-    //err |= clSetKernelArg(kernel, 4, sizeof(unsigned char)*window_size, NULL);
-    //err |= clSetKernelArg(kernel, 5, sizeof(unsigned char)*MAX_CODED, NULL);
+    err |= clSetKernelArg(kernel, 4, sizeof(unsigned char)*window_size, NULL);
+    err |= clSetKernelArg(kernel, 5, sizeof(unsigned char)*MAX_CODED, NULL);
     if(err != CL_SUCCESS) {
         perror("Problem setting arguments.\n");
         printf("Error Code: %d\n", err);
