@@ -85,7 +85,7 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
         for (int t = tidx; t < windowsize; t += group_size) {
             slidingWindow[t] = ' ';
         }
-        barrier(CLK_LOCAL_MEM_FENCE);    
+        barrier(CLK_GLOBAL_MEM_FENCE);    
         
         /************************************************************************
         * Copy MAX_CODED bytes from the input file into the uncoded lookahead
