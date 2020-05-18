@@ -5,7 +5,6 @@
 #include <CL/opencl.h>
 #define WINDOWSIZE 4096
 #define BLOCKSIZE 262144
-#define MINSIZE 262144
 #define MAX_UNCODED 2
 #define MAX_CODED ((1 << 4) + MAX_UNCODED)
 #define MAX_SOURCE_SIZE (0x100000)
@@ -32,7 +31,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     fseek(fpIn, 0, SEEK_END);
     long totalSize = ftell(fpIn);
     fseek(fpIn, 0, SEEK_SET);
-    if (totalSize < MINSIZE)
+    if (totalSize < BLOCKSIZE)
     {
         printf("No use of parallel GPU computation");
         return 0;

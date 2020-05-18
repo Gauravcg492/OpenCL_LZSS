@@ -1,5 +1,6 @@
 #define MAX_UNCODED 2
 #define MAX_CODED ((1 << 4) + MAX_UNCODED)
+#define BLOCKSIZE 262144
 
 typedef struct encoded_string_t {
   unsigned int offset; /* offset to start of longest match */
