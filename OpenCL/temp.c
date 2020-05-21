@@ -42,7 +42,11 @@
 ***************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/time.h>
 #include "optlist.h"
+#include <time.h>
 
 /***************************************************************************
 *                            TYPE DEFINITIONS
@@ -58,7 +62,7 @@ typedef enum
 {
     ENCODE,
     DECODE
-} MODES;
+} modes_t;
 
 /***************************************************************************
 *                                CONSTANTS
