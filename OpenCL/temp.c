@@ -42,11 +42,7 @@
 ***************************************************************************/
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/time.h>
-#include "optlist.h"
-#include <time.h>
+#include "getopt.h"
 
 /***************************************************************************
 *                            TYPE DEFINITIONS
@@ -62,7 +58,7 @@ typedef enum
 {
     ENCODE,
     DECODE
-} modes_t;
+} MODES;
 
 /***************************************************************************
 *                                CONSTANTS
@@ -106,26 +102,19 @@ void DecodeLZSS(FILE *inFile, FILE *outFile);   /* decoding routine */
 ****************************************************************************/
 int main(int argc, char *argv[])
 {
-    struct timeval t1_start,t1_end;
-
-    option_t *optList;
-    option_t *thisOpt;
-    FILE *fpIn;             /* pointer to open input file */
-    FILE *fpOut;            /* pointer to open output file */
-    modes_t mode;
+    int opt;
+    FILE *inFile, *outFile;  /* input & output files */
+    MODES mode;
 
     /* initialize data */
-    fpIn = NULL;
-    fpOut = NULL;
+    inFile = NULL;
+    outFile = NULL;
     mode = ENCODE;
 
     /* parse command line */
-    optList = GetOptList(argc, argv, "cdi:o:h?");
-    thisOpt = optList;
-
-    while (thisOpt != NULL)
+    while ((opt = getopt(argc, argv, "cdtni:o:h?")) != -1)
     {
-        switch(thisOpt->option)
+        switch(opt)
         {
             case 'c':       /* compression mode */
                 mode = ENCODE;
@@ -136,116 +125,110 @@ int main(int argc, char *argv[])
                 break;
 
             case 'i':       /* input file name */
-                if (fpIn != NULL)
+                if (inFile != NULL)
                 {
                     fprintf(stderr, "Multiple input files not allowed.\n");
-                    fclose(fpIn);
+                    fclose(inFile);
 
-                    if (fpOut != NULL)
+                    if (outFile != NULL)
                     {
-                        fclose(fpOut);
+                        fclose(outFile);
                     }
 
-                    FreeOptList(optList);
-                    return -1;
+                    exit(EXIT_FAILURE);
                 }
-
-                /* open input file as binary */
-                fpIn = fopen(thisOpt->argument, "rb");
-                if (fpIn == NULL)
+                else if ((inFile = fopen(optarg, "rb")) == NULL)
                 {
-                    perror("Opening input file");
+                    perror("Opening inFile");
 
-                    if (fpOut != NULL)
+                    if (outFile != NULL)
                     {
-                        fclose(fpOut);
+                        fclose(outFile);
                     }
 
-                    FreeOptList(optList);
-                    return -1;
+                    exit(EXIT_FAILURE);
                 }
                 break;
 
             case 'o':       /* output file name */
-                if (fpOut != NULL)
+                if (outFile != NULL)
                 {
                     fprintf(stderr, "Multiple output files not allowed.\n");
-                    fclose(fpOut);
+                    fclose(outFile);
 
-                    if (fpIn != NULL)
+                    if (inFile != NULL)
                     {
-                        fclose(fpIn);
+                        fclose(inFile);
                     }
 
-                    FreeOptList(optList);
-                    return -1;
+                    exit(EXIT_FAILURE);
                 }
-
-                /* open output file as binary */
-                fpOut = fopen(thisOpt->argument, "wb");
-                if (fpOut == NULL)
+                else if ((outFile = fopen(optarg, "wb")) == NULL)
                 {
-                    perror("Opening output file");
+                    perror("Opening outFile");
 
-                    if (fpIn != NULL)
+                    if (outFile != NULL)
                     {
-                        fclose(fpIn);
+                        fclose(inFile);
                     }
 
-                    FreeOptList(optList);
-                    return -1;
+                    exit(EXIT_FAILURE);
                 }
                 break;
 
             case 'h':
             case '?':
-                printf("Usage: %s <options>\n\n", FindFileName(argv[0]));
+                printf("Usage: lzss <options>\n\n");
                 printf("options:\n");
                 printf("  -c : Encode input file to output file.\n");
                 printf("  -d : Decode input file to output file.\n");
                 printf("  -i <filename> : Name of input file.\n");
                 printf("  -o <filename> : Name of output file.\n");
                 printf("  -h | ?  : Print out command line options.\n\n");
-                printf("Default: %s -c -i stdin -o stdout\n",
-                    FindFileName(argv[0]));
+                printf("Default: lzss -c\n");
+                return(EXIT_SUCCESS);
+        }
+    }
 
-                FreeOptList(optList);
-                return 0;
+    /* validate command line */
+    if (inFile == NULL)
+    {
+        fprintf(stderr, "Input file must be provided\n");
+        fprintf(stderr, "Enter \"lzss -?\" for help.\n");
+
+        if (outFile != NULL)
+        {
+            fclose(outFile);
         }
 
-        optList = thisOpt->next;
-        free(thisOpt);
-        thisOpt = optList;
+        exit (EXIT_FAILURE);
     }
-
-    /* use stdin/out if no files are provided */
-    if (fpIn == NULL)
+    else if (outFile == NULL)
     {
-        fpIn = stdin;
-    }
+        fprintf(stderr, "Output file must be provided\n");
+        fprintf(stderr, "Enter \"lzss -?\" for help.\n");
 
-    if (fpOut == NULL)
-    {
-        fpOut = stdout;
+        if (inFile != NULL)
+        {
+            fclose(inFile);
+        }
+
+        exit (EXIT_FAILURE);
     }
 
     /* we have valid parameters encode or decode */
-    gettimeofday(&t1_start,0);
     if (mode == ENCODE)
     {
-        EncodeLZSS(fpIn, fpOut);
+        EncodeLZSS(inFile, outFile);
     }
     else
     {
-        DecodeLZSS(fpIn, fpOut);
+        DecodeLZSS(inFile, outFile);
     }
-    gettimeofday(&t1_end,0);
-    double alltime = (t1_end.tv_sec-t1_start.tv_sec) + (t1_end.tv_usec - t1_start.tv_usec)/1000000.0;
-    printf("\tAll the time took:\t%f \n", alltime);
-    /* remember to close files */
-    fclose(fpIn);
-    fclose(fpOut);
-    return 0;
+
+    fclose(inFile);
+    fclose(outFile);
+    return EXIT_SUCCESS;
 }
 
 /****************************************************************************
@@ -341,7 +324,6 @@ void EncodeLZSS(FILE *inFile, FILE *outFile)
     nextEncoded = 0;
     windowHead = 0;
     uncodedHead = 0;
-    int counter = 0;
 
     /************************************************************************
     * Fill the sliding window buffer with some known vales.  DecodeLZSS must
