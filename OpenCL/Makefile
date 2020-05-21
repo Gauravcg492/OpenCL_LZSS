@@ -18,4 +18,4 @@ optlist.o: optlist.c optlist.h
 	gcc -c $<
 
 clean:
-	- rm -f *.o sample 
+	- rm -f *.o sample temp
