@@ -109,7 +109,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     int checkSep = 0;
     printf("Reading file\n");
     int totalchars = 0;
-    while((c = fgetc(fpIn)) == EOF)
+    while((c = fgetc(fpIn)) == -1)
     {
         if( c == 0x1D)
         {
