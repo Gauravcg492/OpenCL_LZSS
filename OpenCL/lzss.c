@@ -68,12 +68,18 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     printf("\nCalling Kernel\n");
     callKernel(infifo, outfifo, no_of_blocks, "encode.cl", "EncodeLZSS");
     printf("Kernel Completed\n");
-
     // write to file
     fputc((char)no_of_blocks, fpOut);
     for(int i=0; i<no_of_blocks; i++)
     {
         printf("%d ", outfifo[i].len);
+        if(i == 0)
+        {
+            printf("Characters written to file are\n");
+            for(int k=0;k<10;k++){
+                printf("%c ", outfifo[i].string[k]);
+            }
+        }
         fwrite(outfifo[i].string, 1, outfifo[i].len, fpOut);
         fputc((char)29, fpOut);
     }
