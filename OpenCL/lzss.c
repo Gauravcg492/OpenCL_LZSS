@@ -77,8 +77,9 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
         {
             printf("Characters written to file are\n");
             for(int k=0;k<10;k++){
-                printf("%c ", outfifo[i].string[k]);
+                printf("%c=%d ", outfifo[i].string[k],outfifo[i].string[k]);
             }
+            printf("\n");
         }
         fwrite(outfifo[i].string, 1, outfifo[i].len, fpOut);
         fputc((char)29, fpOut);
