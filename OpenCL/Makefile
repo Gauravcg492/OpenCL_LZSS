@@ -1,5 +1,8 @@
 all: sample
 
+temp: temp.c optlist.o
+	gcc -o temp $<
+
 sample: sample.o lzss.o optlist.o
 	gcc -o sample $^ -lOpenCL -lm 
 
