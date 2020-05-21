@@ -124,7 +124,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
         }    
         totalchars++;    
     }
-    printf("Total characters read\n");
+    printf("Total characters read %d\n", totalchars);
     printf("\nfile read completed with blocks %d\n", block_no);
     if(block_no != no_of_blocks)
     {
