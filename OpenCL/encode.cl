@@ -167,13 +167,13 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                         /* we have 8 code flags, write out flags and code buffer */
                         //putc(flags, outFile);
                         outfifo[id].string[len_out++] = flags;
-                        if(len_out < 10 && id == 0) printf("%c=%d(fl) ",flags);
+                        if(len_out < 12 && id == 0) printf("%c=%d(fl) ",flags,flags);
                         for (i = 0; i < nextEncoded; i++)
                         {
                             /* send at most 8 units of code together */
                             //putc(encodedData[i], outFile);
                             outfifo[id].string[len_out++] = encodedData[i];
-                            if(len_out < 10 && id == 0) printf("%c=%d(ed) ",encodedData[i]);
+                            if(len_out < 12 && id == 0) printf("%c=%d(ed) ",encodedData[i],encodedData[i]);
                         }
                         /* reset encoded data buffer */
                         flags = 0;
@@ -224,12 +224,12 @@ __kernel void EncodeLZSS(__global struct FIFO *infifo, __global struct FIFO *out
                 {
                     //putc(flags, outFile);
                     outfifo[id].string[len_out++] = flags;
-                    if(len_out < 10 && id == 0) printf("%c=%d(flag) ",flags);
+                    if(len_out < 12 && id == 0) printf("%c=%d(flag) ",flags,flags);
                     for (i = 0; i < nextEncoded; i++)
                     {
                         //putc(encodedData[i], outFile);
                         outfifo[id].string[len_out++] = encodedData[i];
-                        if(len_out < 10 && id == 0) printf("%c=%d(ed) ",encodedData[i]);
+                        if(len_out < 12 && id == 0) printf("%c=%d(ed) ",encodedData[i],encodedData[i]);
                     }
                 }
                 outfifo[id].len = len_out;
