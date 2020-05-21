@@ -69,7 +69,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     callKernel(infifo, outfifo, no_of_blocks, "encode.cl", "EncodeLZSS");
     printf("Kernel Completed\n");
     // write to file
-    fputc((char)no_of_blocks, fpOut);
+    putc((char)no_of_blocks, fpOut);
     for(int i=0; i<no_of_blocks; i++)
     {
         printf("%d ", outfifo[i].len);
@@ -82,7 +82,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
             printf("\n");
         }
         fwrite(outfifo[i].string, 1, outfifo[i].len, fpOut);
-        fputc((char)29, fpOut);
+        putc((char)29, fpOut);
     }
     printf("\nWrite to file completed\n");
     // free memory
@@ -105,7 +105,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     fseek(fpIn, 0, SEEK_SET);
 
     // get the total no of blocks used from the first character of the compressed string
-    int no_of_blocks = (int) fgetc(fpIn);
+    int no_of_blocks = (int) getc(fpIn);
     printf("No of blocks %d\n", no_of_blocks);
     infifo = (FIFO *)malloc(sizeof(FIFO) * no_of_blocks);
     outfifo = (FIFO *)malloc(sizeof(FIFO) * no_of_blocks);
@@ -116,7 +116,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     int checkSep = 0;
     printf("Reading file\n");
     int totalchars = 0;
-    while((c = fgetc(fpIn)) == -1)
+    while((c = getc(fpIn)) == EOF)
     {
         if( c == 0x1D)
         {
