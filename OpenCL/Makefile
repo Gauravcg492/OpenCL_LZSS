@@ -1,10 +1,5 @@
 all: sample
 
-temp: temp.o optlist.o
-	gcc -o temp $<
-
-temp.o: temp.c optlist.h
-	gcc -c $<
 sample: sample.o lzss.o optlist.o
 	gcc -o sample $^ -lOpenCL -lm 
 
@@ -18,4 +13,4 @@ optlist.o: optlist.c optlist.h
 	gcc -c $<
 
 clean:
-	- rm -f *.o sample temp
+	- rm -f *.o sample 
