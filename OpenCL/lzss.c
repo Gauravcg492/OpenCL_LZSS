@@ -83,7 +83,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
             printf("\n");
         }
         fwrite(outfifo[i].string, 1, outfifo[i].len, fpOut);
-        //putc('~', fpOut);
+        putc('~', fpOut);
         //putc('`', fpOut);
         putc(0xDB, fpOut);
     }
@@ -122,24 +122,24 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     while(block_no < no_of_blocks)
     {
         c = getc(fpIn);
-        if( c == 0xDB)
+        if( c == (int)'~')
         {
             printf("%c=%d ",c,c);
-            //if ((c = getc(fpIn)) == (int)'`')
-            //{
+            if ((c = getc(fpIn)) == 0xDB)//(int)'`')
+            {
                 //printf("%c=%d ",c,c);
                 infifo[block_no].id = block_no;
                 infifo[block_no].len = len_str;
                 printf("%d ", infifo[block_no].len);
                 block_no++;
                 len_str = 0; 
-            /*} else
+            } else
             {
-                printf("%c=%d ",c,c);
+                printf("else->%c=%d ",c,c);
                 infifo[block_no].string[len_str++] = '~';
                 infifo[block_no].string[len_str++] = c;
                 totalchars++;
-            }*/
+            }
                     
         } else
         {
