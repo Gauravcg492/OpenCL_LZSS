@@ -86,7 +86,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
         //putc('~', fpOut);
         //putc('`', fpOut);
         putc(0x1D, fpOut);
-        putc(0x1F, fpOut);
+        putc(0x1E, fpOut);
     }
     printf("\nWrite to file completed\n");
     // free memory
@@ -126,7 +126,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
         if( c == 0x1D)
         {
             printf("%c=%d ",c,c);
-            if ((c = getc(fpIn)) == 0x1F)//(int)'`')
+            if ((c = getc(fpIn)) == 0x1E)//(int)'`')
             {
                 //printf("%c=%d ",c,c);
                 infifo[block_no].id = block_no;
@@ -137,7 +137,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
             } else
             {
                 printf("else->%c=%d ",c,c);
-                infifo[block_no].string[len_str++] = '~';
+                infifo[block_no].string[len_str++] = 0x1D;
                 infifo[block_no].string[len_str++] = c;
                 totalchars++;
             }
@@ -149,6 +149,11 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
         totalchars++;    
     }
     //printf("Last char read %c %d\n",(char)c, c);
+    printf("All lengths\n");
+    for(int i=0;i<no_of_blocks;i++)
+    {
+        printf("%d ",infifo[i].len);
+    }
     printf("\nTotal characters read %ld\n", totalchars);
     printf("\nfile read completed with blocks %d\n", block_no);
     if(block_no != no_of_blocks)
