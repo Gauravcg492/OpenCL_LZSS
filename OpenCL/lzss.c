@@ -83,8 +83,8 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
             printf("\n");
         }
         fwrite(outfifo[i].string, 1, outfifo[i].len, fpOut);
-        putc('`', fpOut);
         putc('~', fpOut);
+        putc('`', fpOut);
     }
     printf("\nWrite to file completed\n");
     // free memory
@@ -121,9 +121,9 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     while(block_no < no_of_blocks)
     {
         c = getc(fpIn);
-        if( c == (int)'`')
+        if( c == (int)'~')
         {
-            if ((c = getc(fpIn)) == (int)'~')
+            if ((c = getc(fpIn)) == (int)'`')
             {
                 infifo[block_no].id = block_no;
                 infifo[block_no].len = len_str;
@@ -132,7 +132,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
                 len_str = 0; 
             } else
             {
-                infifo[block_no].string[len_str++] = '`';
+                infifo[block_no].string[len_str++] = '~';
                 infifo[block_no].string[len_str++] = c;
                 totalchars++;
             }
