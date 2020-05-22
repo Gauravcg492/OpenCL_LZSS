@@ -74,7 +74,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     //putc((char)no_of_blocks, fpOut);
     int int_len = strlen(cblocks);
     putc((char)int_len,fpOut);
-    fwrite(cblocks, int_len, fpOut);
+    fwrite(cblocks,1, int_len, fpOut);
     for(int i=0; i<no_of_blocks; i++)
     {
         printf("%d ", outfifo[i].len);
