@@ -38,6 +38,8 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     }
     int bsize = BLOCKSIZE;
     int no_of_blocks = ceil((float)totalSize /(float)bsize);
+    char cblocks[10];
+    sprintf(cblocks, "%d",no_of_blocks);
     int padding = totalSize % bsize;
     padding = (padding) ? (bsize - padding) : 0;
     printf("Num of blocks %d\nBuffer size %d\nTotal Size %ld\n", no_of_blocks, bsize, totalSize);
@@ -69,7 +71,10 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     callKernel(infifo, outfifo, no_of_blocks, "encode.cl", "EncodeLZSS");
     printf("Kernel Completed\n");
     // write to file
-    putc((char)no_of_blocks, fpOut);
+    //putc((char)no_of_blocks, fpOut);
+    int int_len = strlen(cblocks);
+    putc((char)int_len,fpOut);
+    fwrite(cblocks, int_len, fpOut);
     for(int i=0; i<no_of_blocks; i++)
     {
         printf("%d ", outfifo[i].len);
@@ -109,7 +114,10 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     fseek(fpIn, 0, SEEK_SET);
 
     // get the total no of blocks used from the first character of the compressed string
-    int no_of_blocks = (int) getc(fpIn);
+    int int_len = (int) getc(fpIn);
+    char cblocks[10];
+    fread(cblocks,1,int_len, fpIn);
+    int no_of_blocks = atoi(cblocks);
     printf("No of blocks %d\ntotalSize %ld\n", no_of_blocks, totalSize);
     infifo = (FIFO *)malloc(sizeof(FIFO) * no_of_blocks);
     outfifo = (FIFO *)malloc(sizeof(FIFO) * no_of_blocks);
