@@ -123,8 +123,10 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
         c = getc(fpIn);
         if( c == (int)'~')
         {
+            printf("%c=%d ",c,c);
             if ((c = getc(fpIn)) == (int)'`')
             {
+                printf("%c=%d ",c,c);
                 infifo[block_no].id = block_no;
                 infifo[block_no].len = len_str;
                 printf("%d ", infifo[block_no].len);
@@ -132,6 +134,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
                 len_str = 0; 
             } else
             {
+                printf("%c=%d ",c,c);
                 infifo[block_no].string[len_str++] = '~';
                 infifo[block_no].string[len_str++] = c;
                 totalchars++;
