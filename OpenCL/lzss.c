@@ -118,7 +118,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     printf("Reading file\n");
     long totalchars = 0;
     int len = (int) getc(fpIn);
-    printf("First length read\n");
+    printf("First length read %d\n", len);
     while(block_no < no_of_blocks)
     {
         c = getc(fpIn);
