@@ -73,7 +73,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     for(int i=0; i<no_of_blocks; i++)
     {
         printf("%d ", outfifo[i].len);
-        putc((char)outfifo[i].len, fpOut);
+        //putc((char)outfifo[i].len, fpOut);
         if(i == 0)
         {
             printf("Characters written to file are\n");
@@ -83,7 +83,8 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
             printf("\n");
         }
         fwrite(outfifo[i].string, 1, outfifo[i].len, fpOut);
-        //putc(0x1D, fpOut);
+        putc('`', fpOut);
+        putc('~', fpOut);
     }
     printf("\nWrite to file completed\n");
     // free memory
@@ -107,7 +108,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
 
     // get the total no of blocks used from the first character of the compressed string
     int no_of_blocks = (int) getc(fpIn);
-    printf("No of blocks %d totalSize %ld\n", no_of_blocks, totalSize);
+    printf("No of blocks %d\ntotalSize %ld\n", no_of_blocks, totalSize);
     infifo = (FIFO *)malloc(sizeof(FIFO) * no_of_blocks);
     outfifo = (FIFO *)malloc(sizeof(FIFO) * no_of_blocks);
 
@@ -117,19 +118,25 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     int checkSep = 0;
     printf("Reading file\n");
     long totalchars = 0;
-    int len = (int) getc(fpIn);
-    printf("First length read %d\n", len);
     while(block_no < no_of_blocks)
     {
         c = getc(fpIn);
-        if( len_str >= len)
+        if( c == (int)'`')
         {
-            infifo[block_no].id = block_no;
-            infifo[block_no].len = len_str;
-            printf("%d ", infifo[block_no].len);
-            block_no++;
-            len_str = 0; 
-            if(block_no < no_of_blocks) len = (int)getc(fpIn);           
+            if ((c = getc(fpIn)) == (int)'~')
+            {
+                infifo[block_no].id = block_no;
+                infifo[block_no].len = len_str;
+                printf("%d ", infifo[block_no].len);
+                block_no++;
+                len_str = 0; 
+            } else
+            {
+                infifo[block_no].string[len_str++] = '`';
+                infifo[block_no].string[len_str++] = c;
+                totalchars++;
+            }
+                    
         } else
         {
             infifo[block_no].string[len_str++] = c;
