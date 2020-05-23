@@ -138,6 +138,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
         c = (int) getc(fpIn);
         fread(temp, 1, c, fpIn);
         length = atoi(temp);
+        printf("%d ", length);
         fread(infifo[block_no].string, 1, length, fpIn);
         infifo[block_no].len = length;
         infifo[block_no].id = block_no;
