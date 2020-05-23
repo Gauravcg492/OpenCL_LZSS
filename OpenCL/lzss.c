@@ -81,7 +81,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     {
         printf("%d ", outfifo[i].len);
         //putc((char)outfifo[i].len, fpOut);
-        sprintf(temp, "%d%c",outfifo[i].len,'\0');
+        sprintf(temp, "%d",outfifo[i].len);
         str_len = strlen(temp);
         putc((char)str_len,fpOut);
         fwrite(temp, 1, str_len, fpOut);
@@ -135,6 +135,7 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
         c = (int) getc(fpIn);
         printf("%d=", c);
         fread(temp, 1, c, fpIn);
+        temp[c] = '\0';
         length = atoi(temp);
         printf("%d ", length);
         fread(infifo[block_no].string, 1, length, fpIn);
