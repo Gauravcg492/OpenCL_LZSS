@@ -140,11 +140,9 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
         fread(infifo[block_no].string, 1, length, fpIn);
         infifo[block_no].len = length;
         infifo[block_no].id = block_no;
-        totalchars+=length;
         block_no++;    
     }
-    //printf("Last char read %c %d\n",(char)c, c);
-    printf("\nTotal characters read %ld\n", totalchars);
+    //printf("\nTotal characters read %ld\n", totalchars);
     printf("\nfile read completed with blocks %d\n", block_no);
     if(block_no != no_of_blocks)
     {
