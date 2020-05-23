@@ -81,7 +81,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     {
         printf("%d ", outfifo[i].len);
         //putc((char)outfifo[i].len, fpOut);
-        sprintf(temp, "%d",outfifo[i].len);
+        sprintf(temp, "%d%c",outfifo[i].len,'\0');
         str_len = strlen(temp);
         putc((char)str_len,fpOut);
         fwrite(temp, 1, str_len, fpOut);
@@ -125,17 +125,15 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     outfifo = (FIFO *)malloc(sizeof(FIFO) * no_of_blocks);
 
     int block_no = 0;
-    int len_str = 0;
     int c;
-    int checkSep = 0;
-    printf("Reading file\n");
-    long totalchars = 0;
-    int len_tmp = 0;
+    //printf("Reading file\n");
+    //long totalchars = 0;
     char temp[8];
     int length = 0;
     while(block_no < no_of_blocks)
     {
         c = (int) getc(fpIn);
+        printf("%d=", c);
         fread(temp, 1, c, fpIn);
         length = atoi(temp);
         printf("%d ", length);
