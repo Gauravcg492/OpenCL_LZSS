@@ -133,18 +133,18 @@ int DecodeLZSS(FILE *fpIn, FILE *fpOut)
     while(block_no < no_of_blocks)
     {
         c = (int) getc(fpIn);
-        printf("%d=", c);
+        //printf("%d=", c);
         fread(temp, 1, c, fpIn);
         temp[c] = '\0';
         length = atoi(temp);
-        printf("%d ", length);
+        //printf("%d ", length);
         fread(infifo[block_no].string, 1, length, fpIn);
         infifo[block_no].len = length;
         infifo[block_no].id = block_no;
         block_no++;    
     }
     //printf("\nTotal characters read %ld\n", totalchars);
-    printf("\nfile read completed with blocks %d\n", block_no);
+    //printf("\nfile read completed with blocks %d\n", block_no);
     if(block_no != no_of_blocks)
     {
         printf("Some error occurred during Compression\n");
@@ -172,7 +172,7 @@ void callKernel(FIFO *infifo, FIFO *outfifo, int no_of_blocks, char* cl_filename
     FILE *fp;
     char *source_str;
     size_t source_size;
-    printf("Filename %s\nKernelname %s\n",cl_filename,cl_kernelname);
+    //printf("Filename %s\nKernelname %s\n",cl_filename,cl_kernelname);
 
     fp = fopen(cl_filename, "r");
     if (!fp)
